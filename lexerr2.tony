@@ -1,0 +1,9 @@
+def solve ():
+
+    def hanoi (int rings; char[] source, target, auxiliary):
+
+    
+	def move (char [] source, target):
+	    puts("Moving from 
+	    		      ") puts(source) puts(" to ") puts(target) puts(".\n")
+        end	      

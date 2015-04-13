@@ -1,4 +1,6 @@
 {
+  open Lexing
+
   type token =
     | T_eof | T_id | T_iconst | T_cconst | T_sconst
     | T_and | T_bool | T_char | T_decl | T_def | T_else | T_elsif
@@ -10,6 +12,7 @@
     | T_lparen | T_rparen | T_lbracket | T_rbracket 
     | T_comma | T_semic | T_colon | T_assign
 
+(* Function that counts program lines *)
 let incr_linenum lexbuf =
   let pos = lexbuf.Lexing.lex_curr_p in
   lexbuf.Lexing.lex_curr_p <- { pos with
@@ -22,6 +25,7 @@ let create_hashtable size init =
   List.iter (fun (key,data) -> Hashtbl.add tbl key data) init;
   (tbl)
 
+(* Create a hashtable for Tony keywords *)
 let keywords = create_hashtable 26 [
   ("and", T_and);    
   ("bool", T_bool);  
@@ -41,7 +45,7 @@ let keywords = create_hashtable 26 [
   ("mod", T_mod);    
   ("new", T_new);    
   ("nil", T_nil);    
-  ("nilq", T_nilq);  
+  ("nil?", T_nilq);  
   ("not", T_not);    
   ("or", T_or);	    
   ("ref", T_ref);    
@@ -53,17 +57,19 @@ let keywords = create_hashtable 26 [
 
 }
 
-let id    = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']+
+let id    = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '?']*
 let digit = ['0'-'9']
+let hex   = ['0'-'9' 'a'-'f' 'A'-'F']
 let white = [' ' '\t' '\r']
 
+(* Main entrypoint *)
 rule lexer = parse
     id as id { try Hashtbl.find keywords id
                with Not_found -> T_id }
        
   | digit+   { T_iconst }
   | "\'"     { parse_char lexbuf }
-  | "\""     { parse_string lexbuf }
+  | "\""     { parse_string [] lexbuf }
 	   
   | "+"      { T_plus }
   | "-"      { T_minus }
@@ -88,14 +94,16 @@ rule lexer = parse
 
   | white+             { lexer lexbuf }
   | '\n'               { incr_linenum lexbuf; lexer lexbuf }
-  | "%" [^ '\n']* "\n" { incr_linenum lexbuf; lexer lexbuf }
-  | "<*"               { comments 0 lexbuf }
+  | "%"                { singleline_comment lexbuf }
+  | "<*"               { multiline_comment 0 lexbuf }
 	 
   | eof                { T_eof }
-  | _ as chr           { Printf.eprintf "Invalid character: '%c' (ascii: %d)"
-					chr (Char.code chr);
-	                 T_eof }
+  | _ as chr           { let pos = lexbuf.Lexing.lex_curr_p in
+			 Printf.eprintf "Invalid character: '%c' at line %d, offset %d\n"
+					chr pos.pos_lnum (pos.pos_cnum - pos.pos_bol);
+	                 exit 1 }
 
+(* Character parsing *)
 and parse_char = parse 
     '\\' 'n' '\''      { T_cconst }
   | '\\' 't' '\''      { T_cconst }
@@ -104,31 +112,50 @@ and parse_char = parse
   | '\\' '\\' '\''     { T_cconst }
   | '\\' '\'' '\''     { T_cconst }
   | '\\' '\"' '\''     { T_cconst }
-  | '\\' "xnn" '\''    { T_cconst }
+  | '\\' "x" hex hex '\''
+	               { T_cconst }
   | _ "\'"             { T_cconst }
-  | _ as chr           { Printf.eprintf "Invalid character constant: '%c' (ascii: %d)"
-					chr (Char.code chr);
-			 T_eof }
+  | _                  { let pos = lexbuf.Lexing.lex_curr_p in
+			 Printf.eprintf "Invalid character constant at line %d, offset %d\n"
+					pos.pos_lnum (pos.pos_cnum - pos.pos_bol);
+			 exit 1 }
 
-and parse_string = shortest
-  | [^ '\n']* "\""     { T_sconst }
-  | eof                { let pos = lexbuf.Lexing.lex_curr_p in
-			 Printf.eprintf "String terminated with EOF at line %d"
-					 pos.pos_lnum;
-			 T_eof }
+(* String parsing *)
+and parse_string acc = parse
+  (* Line feeds and EOF are invalid characters (Line feeds can be escaped) *)
   | '\n'               { let pos = lexbuf.Lexing.lex_curr_p in
-			 Printf.eprintf "Multiline string at line %d"
+			 Printf.eprintf "Multiline string at line %d\n"
 					 pos.pos_lnum;
-			 T_eof }
+			 exit 1 }
+  | '\n' eof 
+  | eof                { let pos = lexbuf.Lexing.lex_curr_p in
+			 Printf.eprintf "String terminated with EOF at line %d\n"
+					 pos.pos_lnum;
+			 exit 1 }
+  (* End of string *)
+  | '\"'               { T_sconst }
+  (* Match next string character *)
+  | '\\' '\n'          { incr_linenum lexbuf; parse_string acc lexbuf }
+  | _ as chr           { parse_string (chr::acc) lexbuf }
 
-and comments level = parse
+(* Single-line comment parsing *)
+and singleline_comment = parse
+  | '\n'               { incr_linenum lexbuf; lexer lexbuf }
+  | eof                { T_eof }
+  | _                  { singleline_comment lexbuf }
+ 
+
+(* Multi-line comment parsing (nested comments allowed) *)
+and multiline_comment level = parse
   | "*>"               { if level = 0 then lexer lexbuf 
-			 else comments (level-1) lexbuf }
-  | "<*"               { comments (level+1) lexbuf }
-  | '\n'               { incr_linenum lexbuf; comments level lexbuf }
-  | _                  { comments level lexbuf }
-  | eof                { Printf.eprintf "Comments are not closed";
-			 T_eof }
+			 else multiline_comment (level-1) lexbuf }
+  | "<*"               { multiline_comment (level+1) lexbuf }
+  | '\n'               { incr_linenum lexbuf; multiline_comment level lexbuf }
+  | _                  { multiline_comment level lexbuf }
+  | eof                { let pos = lexbuf.Lexing.lex_curr_p in
+			 Printf.eprintf "Unterminated comment section at line %d\n"
+					pos.pos_lnum;
+			 exit 1 }
 		       
 {
   let string_of_token token = 
@@ -153,7 +180,7 @@ and comments level = parse
       | T_mod      ->  "T_mod"     
       | T_new      ->  "T_new"     
       | T_nil      ->  "T_nil"     
-      | T_nilq 	   ->  "T_nilq"  	  
+      | T_nilq 	   ->  "T_nil?"  	  
       | T_not      ->  "T_not"     
       | T_or	   ->  "T_or"	  
       | T_ref      ->  "T_ref"     

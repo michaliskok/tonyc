@@ -1,8 +1,26 @@
-lexer : lexer.ml
-	ocamlopt -o lexer lexer.ml
-lexer.ml : lexer.mll
-	ocamllex lexer.mll
+OCAMLC_FLAGS=-g
+OCAMLC=ocamlc
 
-.PHONY : clean
-clean : 
-	rm lexer.cmi lexer.cmx lexer.o
+%.cmo: %.ml %.mli
+	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
+
+%.cmi: %.mli
+	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
+
+%.cmo %.cmi: %.ml
+	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
+
+tonyc: Lexer.cmo
+	$(OCAMLC) $(OCAMLC_FLAGS) -o $@ $^
+
+Lexer.ml: Lexer.mll
+	ocamllex -o $@ $<
+
+.PHONY: clean distclean
+
+clean:
+	$(RM) Lexer.ml *.cmo *.cmi *~
+
+distclean: clean
+	$(RM) tonyc
+
