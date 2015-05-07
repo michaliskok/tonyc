@@ -1,0 +1,12 @@
+def unclosed_comments ():
+
+    <* Nasty unclosed comment section rests
+    <* here *>
+
+    "This is a multiline string \
+    escaped"
+    
+    random words here
+    
+    <* Nasty unclosed comment section rests
+    <* here *>
