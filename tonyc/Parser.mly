@@ -1,3 +1,9 @@
+%{
+
+open Semantics
+
+%} 
+
 %token T_and
 %token T_bool
 %token T_char
