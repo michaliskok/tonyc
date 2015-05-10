@@ -1,3 +1,4 @@
+open Format
 open Parser
 open Lexer
 open Lexing

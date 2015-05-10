@@ -1,0 +1,8 @@
+*.cmi
+*.cmo
+*.cmx
+Lexer.ml
+Parser.ml
+tonyc
+*.automaton
+.depend
