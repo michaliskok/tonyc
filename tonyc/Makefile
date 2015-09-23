@@ -9,9 +9,9 @@ endif
 
 EXEFILE=tonyc$(EXE)
 MLFILES=Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml \
-  StringUtils.ml Lexer.ml Parser.ml Main.ml
+  StringUtils.ml  PrintUtils.ml Semantics.ml Lexer.ml Parser.ml Main.ml
 MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
-  Parser.mli Lexer.mli
+   PrintUtils.mli Semantics.mli Lexer.mli Parser.mli Lexer.mli 
 CMOFILES=$(patsubst %.ml,%.cmo,$(MLFILES))
 CMIFILES=$(patsubst %.ml,%.cmi,$(MLFILES))
 CMXFILES=$(patsubst %.ml,%.cmx,$(MLFILES))

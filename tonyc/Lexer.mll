@@ -8,7 +8,7 @@
 (* Function that counts program lines *)
 let incr_linenum lexbuf =
   let pos = lexbuf.Lexing.lex_curr_p in
-  lexbuf.Lexing.lex_curr_p <- { pos with
+    lexbuf.Lexing.lex_curr_p <- { pos with
     Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
     Lexing.pos_bol = pos.Lexing.pos_cnum;
 }

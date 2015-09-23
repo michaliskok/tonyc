@@ -1,0 +1,12 @@
+def solve () :
+
+    def testFun (int x; ref int y):
+        return x*y
+    end
+
+    int i, j
+
+    i := testFun(i, j)
+
+end
+    

@@ -6,3 +6,7 @@ Parser.ml
 tonyc
 *.automaton
 .depend
+*.tony
+*.pdf
+Main.byte
+.conflicts

@@ -21,7 +21,8 @@ type scope = {
   sco_parent : scope option;
   sco_nesting : int;
   mutable sco_entries : entry list;
-  mutable sco_negofs : int
+  mutable sco_negofs : int;
+  sco_ret_type : typ
 }
 
 and variable_info = {
@@ -70,7 +71,9 @@ let the_outer_scope = {
   sco_parent = None;
   sco_nesting = 0;
   sco_entries = [];
-  sco_negofs = start_negative_offset
+  sco_negofs = start_negative_offset;
+  sco_ret_type = TYPE_none
+		 
 }
 
 let no_entry id = {
@@ -89,12 +92,13 @@ let initSymbolTable size =
    tab := H.create size;
    currentScope := the_outer_scope
 
-let openScope () =
+let openScope typ =
   let sco = {
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
     sco_entries = [];
-    sco_negofs = start_negative_offset
+    sco_negofs = start_negative_offset;
+    sco_ret_type = typ
   } in
   currentScope := sco
 

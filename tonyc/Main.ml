@@ -4,8 +4,9 @@ open Lexer
 open Lexing
 open Error
 
+let lexbuf = Lexing.from_channel stdin
+    
 let main =
-  let lexbuf = Lexing.from_channel stdin in
   try
     Parser.program Lexer.lexer lexbuf;
     exit 0

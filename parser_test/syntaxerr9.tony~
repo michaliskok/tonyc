@@ -1,0 +1,9 @@
+def solve ():
+
+    int i
+
+    if :
+        i := i + 1
+    end
+
+end

@@ -1,4 +1,0 @@
-def random_fun () :
-    
-    var1 := 'invalidcharacter'
-end

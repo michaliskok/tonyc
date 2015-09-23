@@ -1,5 +1,0 @@
-def solve $():
-    
-    puts("This file has an invalid character\n")
-    puts("These messages should not be printed\n")
-end

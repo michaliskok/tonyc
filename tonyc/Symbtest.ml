@@ -12,16 +12,17 @@ let rec pretty_typ ppf typ =
       fprintf ppf "<undefined>"
   | TYPE_int ->
       fprintf ppf "int"
-  | TYPE_byte ->
-      fprintf ppf "byte"
+  | TYPE_char ->
+      fprintf ppf "char"
   | TYPE_array (et, sz) ->
       pretty_typ ppf et;
       if sz > 0 then
         fprintf ppf " [%d]" sz
       else
         fprintf ppf " []"
-  | TYPE_proc ->
-      fprintf ppf "proc"
+  | TYPE_list t ->
+     pretty_typ ppf t;
+     fprintf ppf "list" 
 
 let pretty_mode ppf mode =
   match mode with
