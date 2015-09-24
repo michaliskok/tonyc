@@ -4,9 +4,11 @@
 Lexer.ml
 Parser.ml
 tonyc
+Main.byte
 *.automaton
+.conflicts
 .depend
 *.tony
 *.pdf
-Main.byte
-.conflicts
+*~
+

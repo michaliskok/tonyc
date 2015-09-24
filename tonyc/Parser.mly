@@ -173,19 +173,16 @@ let extract_conditions list =
 program     : init; program_h = main_func_def; T_eof;
               { check_program_header program_h ($startpos, $endpos); closeScope () }
 		
-init        : { initSymbolTable 256; openScope TYPE_none; }
+init        : { initSymbolTable 256; registerLibrary (); openScope TYPE_none; }
 
 		
-main_func_def : T_def; h = header; T_colon; reg_lib; local_def*; stmt+; T_end;
+main_func_def : T_def; h = header; T_colon; local_def*; stmt+; T_end;
 	      { h }
             (* main_func_def - parsing errors *)
-	    | T_def; header; T_colon; reg_lib; local_def*; stmt+; error; T_eof;
+            | T_def; header; T_colon; local_def*; stmt+; error; T_eof;
 	      { missing_end_in_main ($startpos, $endpos); raise Terminate }
 	    | error; header;
 	      { missing_def_in_main ($startpos, $endpos); raise Terminate }
-
-		
-reg_lib     : { registerLibrary () }
 
 		
 func_def    : def_header; local_def*; stmt+; T_end;
