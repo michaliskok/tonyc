@@ -1,9 +1,0 @@
-def solve ():
-
-    def wtf_function (int x, int y)
-    	return x + y
-
-    int i
-
-    puti(i)
-end
