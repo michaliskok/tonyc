@@ -60,7 +60,7 @@ rule lexer = parse
   | id as id           { try Hashtbl.find keywords id
 			 with Not_found -> T_id (id) }
        
-  | digit+ as int      { T_iconst (int_of_string int) }
+  | digit+ as int      { T_iconst (int) }
   | "\'"               { let pos = lexbuf.Lexing.lex_curr_p in
 			 parse_char pos lexbuf }
   | "\""               { let pos = lexbuf.Lexing.lex_curr_p in
@@ -104,16 +104,16 @@ rule lexer = parse
 
 (* Character parsing *)
 and parse_char pos_start = parse 
-    '\\' 'n' '\''      { T_cconst ('\n') }
-  | '\\' 't' '\''      { T_cconst ('\t') }
-  | '\\' 'r' '\''      { T_cconst ('\r') }
-  | '\\' '0' '\''      { T_cconst ('\000') }
-  | '\\' '\\' '\''     { T_cconst ('\\') }
-  | '\\' '\'' '\''     { T_cconst ('\'') }
-  | '\\' '\"' '\''     { T_cconst ('"') }
+    '\\' 'n' '\''      { T_cconst ("\n") }
+  | '\\' 't' '\''      { T_cconst ("\t") }
+  | '\\' 'r' '\''      { T_cconst ("\r") }
+  | '\\' '0' '\''      { T_cconst ("\000") }
+  | '\\' '\\' '\''     { T_cconst ("\\") }
+  | '\\' '\'' '\''     { T_cconst ("\'") }
+  | '\\' '\"' '\''     { T_cconst ("\"") }
   | '\\' "x" hex hex '\'' as s
-	               { T_cconst (Char.chr (parse_hex s)) }
-  | _ as chr "\'"      { T_cconst (chr) }
+	               { T_cconst (String.make 1 (parse_hex s)) }
+  | _ as chr "\'"      { T_cconst (String.make 1 chr) }
   | _                  { dispose_char pos_start lexbuf }
 and dispose_char pos_start = parse
   | '\n'               { incr_linenum lexbuf; dispose_char pos_start lexbuf }

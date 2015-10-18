@@ -11,7 +11,7 @@ let hex_value ch = match ch with
 let parse_hex str =
   let h1 = hex_value str.[2] in
   let h2 = hex_value str.[3] in
-  16 * h1 + h2
+  Char.chr (16 * h1 + h2)
 
 (* Creates a char list from a given string *)
 let explode s =

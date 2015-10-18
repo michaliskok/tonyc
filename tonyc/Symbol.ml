@@ -10,7 +10,7 @@ module H = Hashtbl.Make (
   end
 )
 
-type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
+type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE | PASS_RET
 
 type param_status =
   | PARDEF_COMPLETE
@@ -274,7 +274,8 @@ let endFunctionHeader e typ =
                   let size =
                     match inf.parameter_mode with
                     | PASS_BY_VALUE     -> sizeOfType inf.parameter_type
-                    | PASS_BY_REFERENCE -> 2 in
+                    | PASS_BY_REFERENCE -> 2
+		    | _ -> ( internal "Invalid parameter mode in header"; raise Terminate ) in
                   offset := !offset + size
               | _ ->
                   internal "Cannot fix offset to a non parameter" in

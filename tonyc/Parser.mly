@@ -1,16 +1,13 @@
 %{
 
+open Quads
+open Icode
 open Semantics
 open Symbol
 open Types
 open Identifier
 open Error
-open PrintUtils
-
-(* Return type for various grammar rules *)
-type formal_t = pass_mode * typ * string list
-type header_t = typ * string * formal_t list
-type expr_t = string * typ
+open PrintUtils     
 
 (* Function to declare variables *)
 let rec declareVariables typ = function
@@ -30,11 +27,14 @@ let rec registerParameters f p_list =
 				
 (* Function to register functions *)
 let registerFunction (ret_t, id, p_list) =
-  let f = newFunction (id_make id) true in
+  let f = newFunction (id_make id) true in 
   ( openScope ret_t;
     registerParameters f p_list;
     endFunctionHeader f ret_t;
-  )
+    f
+  ) 
+
+   
 
 (* Function to declare a function *)
 let declareFunction (ret_t, id, p_list) = (* evgala to isLib *)
@@ -51,27 +51,27 @@ let registerLibrary () =
   ignore(declareFunction (TYPE_none, "puti", [(PASS_BY_VALUE, TYPE_int, ["n"])]));
   ignore(declareFunction (TYPE_none, "putb", [(PASS_BY_VALUE, TYPE_bool, ["b"])]));
   ignore(declareFunction (TYPE_none, "putc", [(PASS_BY_VALUE, TYPE_char, ["c"])]));
-  ignore(declareFunction (TYPE_none, "puts", [(PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["s"])]));
+  ignore(declareFunction (TYPE_none, "puts", [(PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["s"])]));
   ignore(declareFunction (TYPE_int,  "geti", []));
   ignore(declareFunction (TYPE_bool, "getb", []));
   ignore(declareFunction (TYPE_char, "getc", []));
   ignore(declareFunction (TYPE_none, "gets", [(PASS_BY_VALUE, TYPE_int, ["n"]);
-					       (PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["s"])]
+					       (PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["s"])]
 			  ));
   ignore(declareFunction (TYPE_int,  "abs",  [(PASS_BY_VALUE, TYPE_int, ["n"])]));
   ignore(declareFunction (TYPE_int,  "ord",  [(PASS_BY_VALUE, TYPE_char, ["c"])]));
   ignore(declareFunction (TYPE_char, "chr",  [(PASS_BY_VALUE, TYPE_int, ["n"])]));
-  ignore(declareFunction (TYPE_int, "strlen", [(PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["s"])]));
-  ignore(declareFunction (TYPE_int, "strcmp", [(PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["s1"]);
-						(PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["s2"])]
+  ignore(declareFunction (TYPE_int, "strlen", [(PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["s"])]));
+  ignore(declareFunction (TYPE_int, "strcmp", [(PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["s1"]);
+						(PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["s2"])]
 			  ));
-  ignore(declareFunction (TYPE_none, "strcpy", [(PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["trg"]);
-						 (PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["src"])]
+  ignore(declareFunction (TYPE_none, "strcpy", [(PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["trg"]);
+						 (PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["src"])]
 			  ));
-  ignore(declareFunction (TYPE_none, "strcat", [(PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["trg"]);
-						 (PASS_BY_REFERENCE, TYPE_array(TYPE_char,0), ["src"])]
+  ignore(declareFunction (TYPE_none, "strcat", [(PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["trg"]);
+						 (PASS_BY_VALUE, TYPE_array(TYPE_char,0), ["src"])]
 			  ));
-  ;;
+;;
 
 
 (* Function that extracts a function's return type (if there is one) from its header *)
@@ -116,8 +116,8 @@ let extract_conditions list =
 %token T_true
 
 %token <string> T_id
-%token <int>    T_iconst
-%token <char>   T_cconst
+%token <string> T_iconst
+%token <string> T_cconst
 %token <string> T_sconst
 
 %token T_plus
@@ -154,56 +154,47 @@ let extract_conditions list =
 
 %start program
 %type <unit> program
-%type <header_t> main_func_def
-%type <unit> func_def 
-%type <header_t> header
-%type <formal_t> formal
-%type <typ> ttype
-%type <unit> func_decl
-%type <unit> var_def
-%type <unit> stmt
-%type <unit> simple
-%type <unit> simple_list
-%type <expr_t> call
-%type <expr_t> atom				
-%type <expr_t> expr
+(*%type <Symbol.entry> func_def
+%type <properties_variable> stmt
+%type <properties_variable> call
+%type <properties_variable> atom				
+%type <properties_variable> expr*)
 
 %%
 
-program     : init; program_h = main_func_def; T_eof;
-              { check_program_header program_h ($startpos, $endpos); closeScope () }
-		
-init        : { initSymbolTable 256; registerLibrary (); openScope TYPE_none; }
+program     : init; program_h = func_def; T_eof;
+                        { check_program_header program_h ($startpos, $endpos); closeScope () }
+ 		
+init        : { initSymbolTable 256; registerLibrary () }
 
 		
-main_func_def : T_def; h = header; T_colon; local_def*; stmt+; T_end;
-	      { h }
-            (* main_func_def - parsing errors *)
-            | T_def; header; T_colon; local_def*; stmt+; error; T_eof;
-	      { missing_end_in_main ($startpos, $endpos); raise Terminate }
-	    | error; header;
-	      { missing_def_in_main ($startpos, $endpos); raise Terminate }
+func_def    : f = def_header; slist = stmt_list; T_end;
+                        {
+			  backpatch slist.next (nextQuad ());
+			  add_quad (genQuad Q_endu (Q_entry f) Q_empty Q_empty);
+			  closeScope ();
+			  f
+			}
+	   (* (* func_def - parsing errors *)
+	    | def_header; local_def*; stmt_list; error;
+	                { missing_end_in_function ($startpos, $endpos); raise Terminate }*)
 
-		
-func_def    : def_header; local_def*; stmt+; T_end;
-                        { closeScope () }
-	    (* func_def - parsing errors *)
-	    | def_header; local_def*; stmt+; error;
-	                { missing_end_in_function ($startpos, $endpos); raise Terminate }
+			    
+def_header : T_def; h = header; T_colon; local_def*;
+	                { let f = registerFunction h in 
+			  add_quad (genQuad Q_unit (Q_entry f) Q_empty Q_empty);
+			  f 
+			}
+	    (* def_header - parsing errors *)
+	    | T_def; header; error;
+	                { missing_colon_error ($startpos, $endpos); raise Terminate } 
 
 %inline local_def :
 	    | func_def  { () }
 	    | func_decl { () } 
 	    | var_def   { () }
 
-			    
-def_header : T_def; h = header; T_colon;
-	                { registerFunction h }
-	    (* def_header - parsing errors *)
-	    | T_def; header; error;
-	                { missing_colon_error ($startpos, $endpos); raise Terminate }
-
-
+			  
 header      : fn_t = ttype?; id = T_id; T_lparen; params = separated_list(T_semic,formal); T_rparen;
 	                { (extract_fun_type fn_t, id, params) }
 	    (* header - parsing errors *)
@@ -244,28 +235,30 @@ var_def     : t = ttype; vars = separated_nonempty_list(T_comma,T_id);
 	    | error;
 	                { var_def_error_2 ($startpos, $endpos); raise Terminate }
 
-			  
-stmt        : simple;  { () }
+			  (* New rule, needed for I-code generation *)
+stmt_list   : s = stmt
+	                { icode_stmt s }
+	    | slist = stmt_list; f = foo_stmt; s = stmt 
+		        { icode_stmt_list slist f s }
+
+foo_stmt    : (* empty *)
+		        { nextQuad () }
+			
+stmt        : s = simple;
+		       { s }
 	    | T_exit;
 	               { check_fun_ret_type TYPE_none ($startpos, $endpos);
-			 ()
+			 default_properties
 		       }
 	    | T_return; e = expr;
-	               { let (_, exp_t) = e in
-			 check_fun_ret_type exp_t ($startpos, $endpos);
-			 ()
+	               { check_fun_ret_type e.typ ($startpos, $endpos);
+			 icode_return_stmt e
 		       }
-	    | T_if; e = expr; T_colon; stmt+; elif_list = list(preceded(T_elsif,separated_pair(expr,T_colon,stmt+))); 
-	      preceded(T_else,preceded(T_colon,stmt+))?; T_end;
-	               { let conditions = extract_conditions ((e,[()]) :: elif_list) in
-			 check_cond_list conditions ($startpos, $endpos);
-			 () }
-	    | T_for; simple_list; T_semic; e = expr; T_semic; simple_list; T_colon; stmt+; T_end;  
-	               { let (_, exp_t) = e in
-			 check_bool_exp exp_t ($startpos, $endpos);
-			 ()
-	               }
-	    (* stmt - parsing errors *)	 
+	    | iff = if_stmt;
+	               { { default_properties with next = iff.next } }
+	    | forr = for_stmt;  
+	               { { default_properties with next = forr.next } }	            
+	    (*(* stmt - parsing errors *)	 
 	    | T_return; error;
 	               { missing_return_type ($startpos, $endpos); raise Terminate }
 	    | T_if; error;
@@ -287,17 +280,109 @@ stmt        : simple;  { () }
 	    | T_for; simple_list; T_semic; expr; T_semic; error;
 	              { simple_after_cond_error ($startpos, $endpos); raise Terminate }
 	    | T_for; simple_list; T_semic; expr; T_semic; simple_list; error;
-	              { colon_after_for_error ($startpos, $endpos); raise Terminate }
-		
+	              { colon_after_for_error ($startpos, $endpos); raise Terminate }*)
+
+	    (* if <cond1> : <compound1> [elsif <cond2>: <compound2>] [else : <compound3>] end *)
+if_stmt     : h = if_head; st = stmt_list; el = else_stmt; T_end;
+	              { let cond1_false = h in
+			let result = { default_properties with next = fst el } in
+			match snd el with
+			| e :: _ ->
+			   ( backpatch cond1_false e; result )
+			| [] ->
+			   ( backpatch cond1_false (nextQuad ()); result ) (* Empty else clause *)
+		      }
+	    | h = if_head; slist = stmt_list; elif = elsif_stmt; els = else_stmt; T_end;
+	              { let cond1_false = h in
+			let elsif_next, cond2_q_false = elif in
+			let else_next, compound3_q = els in 
+			backpatch cond1_false !(List.hd cond2_q_false);
+			let result = { default_properties with next = elsif_next @ else_next @ slist.next } in
+			match compound3_q with
+			| h :: _ -> ( backpatch (List.tl cond2_q_false) h; result )
+			| [] -> { result with next = result.next @ (List.tl cond2_q_false) } 
+		      }
+
+            (* Backpatches <cond1>.TRUE and returns <cond>.FALSE *)
+if_head     : T_if; e = expr; T_colon;
+                      { check_bool_exp e.typ ($startpos, $endpos);
+			backpatch e.true_l (nextQuad ());
+			e.false_l
+		      }
+
+	    (* Returns (else next, <compound3>.NEXT) *) 		       
+else_stmt   : (* empty *)
+		      { ([], []) } 
+	    | h = else_head; slist = stmt_list;
+	              { ((fst h)::(slist.next), [snd h]) }
+
+	    (* Returns (ref <jump2>.quad_num, <compound3>.quad_num) *)
+else_head   : T_else; T_colon;
+		      {
+			let l = ref (nextQuad ()) in
+			add_quad (genQuad Q_jump Q_empty Q_empty (Q_label l));
+			(l, nextQuad ())
+		      }
+
+elsif_stmt  : h = elsif_head; slist = stmt_list;
+		      {
+			match h with
+			| (jump1, cond2_false_q) -> (jump1 :: slist.next, cond2_false_q)
+		      } 
+	    | elif = elsif_stmt; h = elsif_head; slist = stmt_list;
+	              {
+			match elif, h with
+			| (j_next, (cond_q :: cond_false)),
+			  (j1_q, (cond2_q :: cond2_false)) -> 
+			   ( backpatch cond_false !cond2_q;
+			     (j_next @ (j1_q :: slist.next), cond_q :: cond2_false) )
+			| _ ->
+			   (* internal "Problem in elsif_stmt rule";*) raise Terminate 
+		      }
+
+elsif_head  : el = elsif; e = expr; T_colon;
+		      {
+			check_bool_exp e.typ ($startpos, $endpos);
+			backpatch e.true_l (nextQuad ());
+			(fst el, (snd el)::e.false_l)
+		      }
+
+elsif       : T_elsif; 
+		      {
+			let l = ref (nextQuad ()) in
+			add_quad (genQuad Q_jump Q_empty Q_empty (Q_label l));
+			(l, ref (nextQuad ()))
+		      }
 			
-simple      : T_skip; { () }
+
+for_stmt    : h = for_head; slist = stmt_list; T_end;
+		      { icode_for_stmt h slist }
+				  
+		      
+for_head    : init = for_init; cond = for_cond; simple_list; T_colon;
+                      {
+			backpatch cond.true_l (nextQuad ());
+			(init, cond)
+		      }
+
+for_init    : T_for; simple_list; T_semic;
+                      { let q = ref (nextQuad ()) in q }
+
+for_cond    : e = expr; T_semic;
+		      { check_bool_exp e.typ ($startpos, $endpos);
+			e
+		      }
+
+
+simple      : T_skip;
+		      { default_properties }
             | atm = atom; T_assign; e = expr;
-	              { let (_, exp_t) = e in
-			check_assign atm exp_t ($startpos, $endpos);
-			()
+	              { check_assign atm e.typ ($startpos, $endpos);
+			icode_assign_stmt atm e
 	              }
-	    | call;   { () }
-	    (* Simple - parsing errors *)
+	    | c = call;
+	              { { default_properties with place = c.place } }
+	    (* simple - parsing errors *)
 	    | atom; T_assign; error;
 	              { assignment_error ($startpos, $endpos); raise Terminate }
 
@@ -306,102 +391,88 @@ simple_list : separated_nonempty_list(T_comma, simple)  { () }
 
 				 				     
 call        : id = T_id; T_lparen; args = separated_list(T_comma, expr); T_rparen;
-	              { let ret_t = check_fun_call id args ($startpos, $endpos) in
-		        (id, ret_t)
+	              { let (res, ent) = check_fun_call id args ($startpos, $endpos) in
+			icode_fun_call res ent args
 		      }
+	    (* call - parsing errors *)
 	    | T_id; T_lparen; error;
 	              { wrong_function_call ($startpos, $endpos); raise Terminate }
 
 			
 atom        : id = T_id;
-	              { let t = check_lvalue id ($startpos, $endpos); in
-		        (id, t)
+	              { let (ent,t) = check_lvalue id ($startpos, $endpos) in			
+		        { default_properties with place = Q_entry ent; typ = t }
 		      }
             | s = T_sconst;
-	              { let size = String.length s + 1 in (* edw alla3a to size logw tou semanticerr2 *)
-			("", TYPE_array (TYPE_char, size))
+	              { let size = String.length s + 1 in
+			{ default_properties with place = Q_string s; typ = TYPE_array (TYPE_char, size) }
 		      } 
 	    | atm = atom; T_lbracket; e = expr; T_rbracket;
-	              { let (id, _) = atm in
-			let (_, t) = e in
-			let et = check_array_lvalue id t ($startpos, $endpos) in
-			(id, et)
+	              { check_array_lvalue atm.typ e.typ ($startpos, $endpos);
+			icode_array_atom atm e
 		      }		
-	    | ret_t = call;    
-	              { ret_t }
+	    | call_code = call;    
+	              { call_code }
 	    (* atom - parsing errors *)
 	    | atom; T_lbracket; expr; error;
-	              { missing_rbracket_error ($startpos, $endpos); raise Terminate }				       
+	              { missing_rbracket_error ($startpos, $endpos); raise Terminate }       
 			
 			
-expr        : atm = atom;     
+expr        : atm = atom;     (* 8elei douleia auto -- nomizw einai ok, pigaine sto call *)
 		      { atm }
-	    | T_iconst;
-		      { ("", TYPE_int) }
-	    | T_cconst;
-		      { ("", TYPE_char) }
+	    | i = T_iconst;
+	              { { default_properties with place = Q_int (i); typ = TYPE_int }  }
+	    | c = T_cconst;
+		      { { default_properties with place = Q_char (c); typ = TYPE_char } }
 	    | T_true;
-		      { ("", TYPE_bool) }
+	              { let x = ref (nextQuad ()) in
+			{ default_properties with place = Q_bool ("true"); typ = TYPE_bool; true_l = [x] } }
 	    | T_false;
-		      { ("", TYPE_bool) }
+	              { let x = ref (nextQuad ()) in (* einai skata, des mipws 8elei Q_jump (x) sto code *)
+			{ default_properties with place = Q_bool ("false"); typ = TYPE_bool; false_l = [x] } }
 	    | T_nil;
-                      { ("", TYPE_list TYPE_none) }
+                      { { default_properties with place = Q_nil; typ = TYPE_list TYPE_none; } } (* 8ELEI DOULEIA EDW, des gia to list_cons ti paizei -- dokimes me listes *)
 	    | T_lparen; e = expr; T_rparen
 		      { e }
-	    | unary_op; e = expr %prec T_unary
-		      { let (id, t) = e in
-		        check_unary_exp t ($startpos, $endpos);
-			("", t)
+	    | op = unary_op; e = expr %prec T_unary
+		      { check_unary_exp e.typ ($startpos, $endpos);
+			icode_unary_exp op e
 		      }
 	    | T_not; e = expr;
-	              { let (id, t) = e in
-			check_bool_exp t ($startpos, $endpos);
-		        ("", t)
+	              { check_bool_exp e.typ ($startpos, $endpos); 
+		        { e with true_l = e.false_l; false_l = e.true_l }
 		      }
 	    | e1 = expr; op = binary_op; e2 = expr;
-	              { let (id_1, t1) = e1 in
-			let (id_2, t2) = e2 in
-			check_binary_exp op t1 t2 ($startpos, $endpos);
-			("", t1)
+	              { check_binary_exp op e1.typ e2.typ ($startpos, $endpos);
+			icode_binary_exp op e1 e2
 		      }
-	    | e1 = expr; op = boolean_op; e2 = expr;
-	              {
-			let (id_1, t1) = e1 in
-			let (id_2, t2) = e2 in
-			check_binary_exp op t1 t2 ($startpos, $endpos);
-			("", t1)
+	    | e1 = expr; op = boolean_op; e2 = expr; (* dokimh *)
+	              { check_binary_exp op e1.typ e2.typ ($startpos, $endpos);
+			icode_boolean_exp op e1 e2
 		      }
-	    | e1 = expr; op = cmp_op; e2 = expr;
-	              { let (id_1, t1) = e1 in
-			let (id_2, t2) = e2 in
-			check_binary_exp op t1 t2 ($startpos, $endpos);
-		 	("", TYPE_bool)
+	    | e1 = expr; op = cmp_op; e2 = expr; (* dokimh *)
+	              { check_binary_exp op e1.typ e2.typ ($startpos, $endpos);
+		 	icode_relop_exp op e1 e2
 		      }
 	    | e1 = expr; T_cons; e2 = expr;
-	              { let (id_1, t1) = e1 in
-			let (id_2, t2) = e2 in
-			check_list_cons t1 t2 ($startpos, $endpos);
-			("", TYPE_list t1)
+	              { check_list_cons e1.typ e2.typ ($startpos, $endpos);
+			icode_list_cons e1 e2
 		      }
 	    | T_new; t = ttype; T_lbracket; e = expr; T_rbracket;
-                      { let (id, idx) = e in
-			check_new_array idx ($startpos, $endpos);
-			("", TYPE_array (t, 0))
+                      { check_new_array e.typ ($startpos, $endpos);
+			icode_new_array t e
 		      }
 	    | T_nilq; T_lparen; e = expr; T_rparen;
-	              { let (id, t) = e in
-			check_list_exp t ($startpos, $endpos);
-		        ("", TYPE_bool)
+	              { check_list_exp e.typ ($startpos, $endpos);
+		        icode_list_nilq e
 		      }
 	    | T_head; T_lparen; e = expr; T_rparen;
- 	              { let (id, t) = e in
-			check_list_exp t ($startpos, $endpos);
-			("", extractType t)
+ 	              { check_list_exp e.typ ($startpos, $endpos);
+			icode_list_head e
 		      }
-	    | T_tail; T_lparen; e = expr; T_rparen; 
-	              { let (id, t) = e in
-			check_list_exp t ($startpos, $endpos);
-			("", t)
+	    | T_tail; T_lparen; e = expr; T_rparen;
+	              { check_list_exp e.typ ($startpos, $endpos);
+			icode_list_tail e
 		      }
 	    (* expr parsing errors *)
 	    | expr; binary_op; error;
@@ -433,3 +504,5 @@ expr        : atm = atom;
 %inline boolean_op:
             | T_and     { "and" }
 	    | T_or      { "or"  }
+ 
+  

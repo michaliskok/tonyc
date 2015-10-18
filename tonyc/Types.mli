@@ -12,3 +12,5 @@ type typ = TYPE_none	      (* no type (should not be used)       *)
 val sizeOfType : typ -> int
 val equalType : typ -> typ -> bool
 val extractType : typ -> typ
+val isPointerType : typ -> bool
+val needSizeExtend : typ -> bool
