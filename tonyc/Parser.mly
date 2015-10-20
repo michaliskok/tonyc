@@ -7,8 +7,9 @@ open Symbol
 open Types
 open Identifier
 open Error
-open PrintUtils     
+open PrintUtils
 
+       
 (* Function to declare variables *)
 let rec declareVariables typ = function
   | [] -> ()
@@ -154,16 +155,16 @@ let extract_conditions list =
 
 %start program
 %type <unit> program
-(*%type <Symbol.entry> func_def
+%type <Symbol.entry> func_def
 %type <properties_variable> stmt
 %type <properties_variable> call
 %type <properties_variable> atom				
-%type <properties_variable> expr*)
+%type <properties_variable> expr
 
 %%
 
 program     : init; program_h = func_def; T_eof;
-                        { check_program_header program_h ($startpos, $endpos); closeScope () }
+              { check_program_header program_h ($startpos, $endpos) }
  		
 init        : { initSymbolTable 256; registerLibrary () }
 
@@ -175,13 +176,13 @@ func_def    : f = def_header; slist = stmt_list; T_end;
 			  closeScope ();
 			  f
 			}
-	   (* (* func_def - parsing errors *)
-	    | def_header; local_def*; stmt_list; error;
-	                { missing_end_in_function ($startpos, $endpos); raise Terminate }*)
+	    (* func_def - parsing errors *)
+	    | def_header; stmt_list; error;
+	                { missing_end_in_function ($startpos, $endpos); raise Terminate }
 
 			    
-def_header : T_def; h = header; T_colon; local_def*;
-	                { let f = registerFunction h in 
+def_header : T_def; f = header; T_colon; local_def*;
+	                { 
 			  add_quad (genQuad Q_unit (Q_entry f) Q_empty Q_empty);
 			  f 
 			}
@@ -196,7 +197,7 @@ def_header : T_def; h = header; T_colon; local_def*;
 
 			  
 header      : fn_t = ttype?; id = T_id; T_lparen; params = separated_list(T_semic,formal); T_rparen;
-	                { (extract_fun_type fn_t, id, params) }
+	                { registerFunction (extract_fun_type fn_t, id, params) }
 	    (* header - parsing errors *)
 	    | ttype?; error;
 	                { id_expected_error ($startpos, $endpos); raise Terminate }
@@ -225,8 +226,8 @@ ttype       : T_int     {  TYPE_int   }
 	                { TYPE_list t }
 
 			  
-func_decl   : T_decl; f = header;  
-			{ declareFunction f }
+func_decl   : T_decl; fn_t = ttype?; id = T_id; T_lparen; params = separated_list(T_semic,formal); T_rparen; (* allagh edw *)
+			{ declareFunction (extract_fun_type fn_t, id, params) }
 
 			  
 var_def     : t = ttype; vars = separated_nonempty_list(T_comma,T_id);  
@@ -258,29 +259,11 @@ stmt        : s = simple;
 	               { { default_properties with next = iff.next } }
 	    | forr = for_stmt;  
 	               { { default_properties with next = forr.next } }	            
-	    (*(* stmt - parsing errors *)	 
+	    (* stmt - parsing errors *)	 
 	    | T_return; error;
 	               { missing_return_type ($startpos, $endpos); raise Terminate }
-	    | T_if; error;
-	               { expr_after_if_error ($startpos, $endpos); raise Terminate }
-	    | T_if; expr; error;
-	               { colon_after_expr_error ($startpos, $endpos); raise Terminate }
-	    | T_if; expr; T_colon; stmt+; list(preceded(T_elsif,separated_pair(expr,T_colon,stmt+))); error;
-	               { elsif_error ($startpos, $endpos); raise Terminate }
-	    | T_if; expr; T_colon; stmt+; list(preceded(T_elsif,separated_pair(expr,T_colon,stmt+))); T_else; error;
-	               { colon_after_else_error ($startpos, $endpos); raise Terminate }
-	    | T_for; error;
-	              { simple_after_for_error ($startpos, $endpos); raise Terminate }
-	    | T_for; simple_list; error;
-	              { semic_after_for_error ($startpos, $endpos); raise Terminate }
-	    | T_for; simple_list; T_semic; error;
-	              { expr_after_for_error ($startpos, $endpos); raise Terminate }
-	    | T_for; simple_list; T_semic; expr; error;
-	              { semic_after_cond_error ($startpos, $endpos); raise Terminate }
-	    | T_for; simple_list; T_semic; expr; T_semic; error;
-	              { simple_after_cond_error ($startpos, $endpos); raise Terminate }
-	    | T_for; simple_list; T_semic; expr; T_semic; simple_list; error;
-	              { colon_after_for_error ($startpos, $endpos); raise Terminate }*)
+	 	  	     	    	    	    
+  
 
 	    (* if <cond1> : <compound1> [elsif <cond2>: <compound2>] [else : <compound3>] end *)
 if_stmt     : h = if_head; st = stmt_list; el = else_stmt; T_end;
@@ -309,6 +292,11 @@ if_head     : T_if; e = expr; T_colon;
 			backpatch e.true_l (nextQuad ());
 			e.false_l
 		      }
+	    (* if_head - parsing errors *)
+	    | T_if; error;
+	              { expr_after_if_error ($startpos, $endpos); raise Terminate }
+	    | T_if; expr; error;
+	              { colon_after_expr_error ($startpos, $endpos); raise Terminate }
 
 	    (* Returns (else next, <compound3>.NEXT) *) 		       
 else_stmt   : (* empty *)
@@ -323,6 +311,10 @@ else_head   : T_else; T_colon;
 			add_quad (genQuad Q_jump Q_empty Q_empty (Q_label l));
 			(l, nextQuad ())
 		      }
+	    (* else_head - parsing errors *)
+	    | T_else; error;
+	              { colon_after_else_error ($startpos, $endpos); raise Terminate }
+		       
 
 elsif_stmt  : h = elsif_head; slist = stmt_list;
 		      {
@@ -346,6 +338,11 @@ elsif_head  : el = elsif; e = expr; T_colon;
 			backpatch e.true_l (nextQuad ());
 			(fst el, (snd el)::e.false_l)
 		      }
+	    (* elsif_head - parsing errors *)
+	    | elsif; error;
+	             { expr_after_elsif_error ($startpos, $endpos); raise Terminate }
+	    | elsif; expr; error;
+	             { colon_after_expr_error ($startpos, $endpos); raise Terminate }
 
 elsif       : T_elsif; 
 		      {
@@ -357,6 +354,9 @@ elsif       : T_elsif;
 
 for_stmt    : h = for_head; slist = stmt_list; T_end;
 		      { icode_for_stmt h slist }
+	    (* for_stmt - parsing errors *)
+	    | for_head; stmt_list; error
+		      { missing_end_in_for ($startpos, $endpos); raise Terminate }
 				  
 		      
 for_head    : init = for_init; cond = for_cond; simple_list; T_colon;
@@ -364,14 +364,29 @@ for_head    : init = for_init; cond = for_cond; simple_list; T_colon;
 			backpatch cond.true_l (nextQuad ());
 			(init, cond)
 		      }
-
+	    (* for_head - parsing errors *)
+	    | for_init; error;
+	              { expr_after_for_error ($startpos, $endpos); raise Terminate }
+	    | for_init; for_cond; error;
+	              { simple_after_cond_error ($startpos, $endpos); raise Terminate }
+	    | for_init; for_cond; simple_list; error;
+	              { colon_after_for_error ($startpos, $endpos); raise Terminate }
+			
 for_init    : T_for; simple_list; T_semic;
                       { let q = ref (nextQuad ()) in q }
+	    (* for_init - parsing errors *)
+	    | T_for; error;
+	              { simple_after_for_error ($startpos, $endpos); raise Terminate }
+	    | T_for; simple_list; error;
+	              { semic_after_for_error ($startpos, $endpos); raise Terminate }
 
 for_cond    : e = expr; T_semic;
 		      { check_bool_exp e.typ ($startpos, $endpos);
 			e
 		      }
+	    (* for_cond - parsing errors *)
+	    | expr; error;
+	              { semic_after_cond_error ($startpos, $endpos); raise Terminate }
 
 
 simple      : T_skip;
@@ -447,7 +462,7 @@ expr        : atm = atom;     (* 8elei douleia auto -- nomizw einai ok, pigaine 
 			icode_binary_exp op e1 e2
 		      }
 	    | e1 = expr; op = boolean_op; e2 = expr; (* dokimh *)
-	              { check_binary_exp op e1.typ e2.typ ($startpos, $endpos);
+	              { check_binary_exp op e1.typ e2.typ; (* LA8OS GIATI EXW SPASEI TO BOOLEAN_EXP *)
 			icode_boolean_exp op e1 e2
 		      }
 	    | e1 = expr; op = cmp_op; e2 = expr; (* dokimh *)
@@ -481,7 +496,7 @@ expr        : atm = atom;     (* 8elei douleia auto -- nomizw einai ok, pigaine 
 	              { invalid_cmp_error ($startpos, $endpos); raise Terminate }
 	    | T_lparen; expr; error; 
 	              { missing_rparen_error ($startpos, $endpos); raise Terminate }
-		  
+			
 %inline unary_op:
 	    | T_minus   {  "-"  }
 	    | T_plus    {  "+"  }
