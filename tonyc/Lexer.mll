@@ -60,7 +60,7 @@ rule lexer = parse
   | id as id           { try Hashtbl.find keywords id
 			 with Not_found -> T_id (id) }
        
-  | digit+ as int      { T_iconst (int) }
+  | digit+ as int      { T_iconst (int_of_string int) }
   | "\'"               { let pos = lexbuf.Lexing.lex_curr_p in
 			 parse_char pos lexbuf }
   | "\""               { let pos = lexbuf.Lexing.lex_curr_p in

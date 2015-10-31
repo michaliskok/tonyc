@@ -23,7 +23,7 @@ let rec sizeOfType t =
 let rec equalType t1 t2 =
    match t1, t2 with
    | TYPE_array (et1, sz1), TYPE_array (et2, sz2) -> equalType et1 et2
-   | TYPE_list et1, TYPE_list et2                 -> equalType et1 et2
+   | TYPE_list et1, TYPE_list et2                 -> equalType et1 et2 || et2 = TYPE_none || et1 = TYPE_none (* empty list has type: TYPE_list TYPE_none *)
    | _                                            -> t1 = t2
 
 let extractType = function

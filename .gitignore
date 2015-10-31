@@ -1,6 +1,7 @@
 *.cmi
 *.cmo
 *.cmx
+*.imm
 Lexer.ml
 Parser.ml
 tonyc
@@ -13,4 +14,5 @@ Main.byte
 *~
 _log
 _build
-
+icode_test
+semantics_test

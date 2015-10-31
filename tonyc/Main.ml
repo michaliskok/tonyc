@@ -17,18 +17,25 @@ let spec = Arg.align [
 let anon_fun str =
   in_file := Some str
 
+let filename = ref ""
+		  
+(* Function that updates the filename in Lexer buffer *)
+let update_filename lexbuf filename =
+  let pos = lexbuf.Lexing.lex_curr_p in
+    lexbuf.Lexing.lex_curr_p <- { pos with pos_fname = filename }
 		  
 let main =
   Arg.parse spec anon_fun usage_msg;
   let in_channel = match !in_file with
-    | None -> stdin;
-    | Some str -> open_in str in
+    | None -> stdin
+    | Some str -> filename := str; open_in str in
   let lexbuf = Lexing.from_channel in_channel in
+  update_filename lexbuf !filename;
   try
-    let _ = Parser.program Lexer.lexer lexbuf in
+    let quads = List.rev (Parser.program Lexer.lexer lexbuf) in
     match !mode with
     | Intermediate ->
-       Quads.print_quads stdout
+       Quads.print_quads stdout quads
     | Final ->
        ()
     | Normal ->
@@ -37,7 +44,7 @@ let main =
 	  internal "Need to read from a source file!"; raise Terminate
        | Some str ->
 	  let imm_file = open_out ((Filename.chop_extension str) ^ ".imm") in
-	  Quads.print_quads imm_file              
+	  Quads.print_quads imm_file quads             
   with
     Error -> 
     let pos = position_point lexbuf.Lexing.lex_curr_p in
