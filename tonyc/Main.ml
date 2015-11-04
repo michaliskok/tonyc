@@ -10,14 +10,17 @@ type mode_t = Normal | Intermediate | Final
 let mode = ref Normal
 let in_file = ref None
 
+let filename = ref ""
+let optimizations = ref false
+
+		   
 let usage_msg = "Usage: tonyc [options] filename \n\nOptions:"
 let spec = Arg.align [
 	       "-i", Arg.Unit (fun () -> mode := Intermediate), "Output Intermediate Code";
+	       "-O", Arg.Unit (fun () -> optimizations := true), "Enable Optimizations"
 	     ]
 let anon_fun str =
   in_file := Some str
-
-let filename = ref ""
 		  
 (* Function that updates the filename in Lexer buffer *)
 let update_filename lexbuf filename =
@@ -32,7 +35,8 @@ let main =
   let lexbuf = Lexing.from_channel in_channel in
   update_filename lexbuf !filename;
   try
-    let quads = List.rev (Parser.program Lexer.lexer lexbuf) in
+    let quads = Array.of_list (List.rev (Parser.program Lexer.lexer lexbuf)) in
+    let _ = Optimize.optimize !optimizations quads in
     match !mode with
     | Intermediate ->
        Quads.print_quads stdout quads
