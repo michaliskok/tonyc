@@ -7,7 +7,6 @@ type typ = TYPE_none	      (* no type (should not be used)       *)
              int	      (*   size of array, if known, or zero *)
 	 | TYPE_list of	      (* list                               *)
 	     typ	      (*   element type                     *)
-	 | TYPE_func          (* function                           *)
 
 val sizeOfType : typ -> int
 val equalType : typ -> typ -> bool

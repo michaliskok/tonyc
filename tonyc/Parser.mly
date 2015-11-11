@@ -79,6 +79,11 @@ let registerLibrary () =
 let extract_fun_type fn_t = match fn_t with
   | Some x -> x
   | None   -> TYPE_none
+
+(* Function that extracts an entry from an entry quad operand *)
+let extract_entry quad_operand = match quad_operand with
+  | Q_entry f -> f
+  | _ -> fatal "Tried to extract entry from a non-entry operand"; raise Terminate
     
 %} 
 
@@ -110,9 +115,9 @@ let extract_fun_type fn_t = match fn_t with
 %token T_true
 
 %token <string> T_id
-%token <int> T_iconst
+%token <int>    T_iconst
 %token <string> T_cconst
-%token <string> T_sconst
+%token <string * string> T_sconst
 
 %token T_plus
 %token T_minus
@@ -156,16 +161,18 @@ let extract_fun_type fn_t = match fn_t with
 %%
 
 program     : init; program = func_def; T_eof;
-              { check_program_header program ($startpos, $endpos); closeScope ();program.code }
+              { check_program_header program ($startpos, $endpos); closeScope (); program.code }
  		
 init        : { initSymbolTable 256; registerLibrary (); openScope TYPE_none }
 
 		
 func_def    : f = def_header; slist = stmt_list; T_end;
                         { backpatch slist.next (nextQuad ());
+			  Final.func_stack_push (extract_entry f.place, !currentScope.sco_negofs, !currentScope.sco_entries); 
 			  let new_quad = genQuad Q_endu f.place Q_empty Q_empty in
 			  closeScope ();
-			  { default_properties with code = new_quad :: slist.code @ f.code; place = f.place } }
+			  { default_properties with code = new_quad :: slist.code @ f.code; place = f.place }
+			}
 	    (* func_def - parsing errors *)
 	    | def_header; stmt_list; error;
 	                { missing_end_in_function ($startpos, $endpos); raise Terminate }
@@ -173,7 +180,8 @@ func_def    : f = def_header; slist = stmt_list; T_end;
 			    
 def_header : T_def; f = header; T_colon; fs = local_defs;
 			{ let new_quad = genQuad Q_unit (Q_entry f) Q_empty Q_empty in
-			  { default_properties with code = new_quad :: fs.code; place = Q_entry f } }
+			  { default_properties with code = new_quad :: fs.code; place = Q_entry f }
+			}
 	    (* def_header - parsing errors *)
 	    | T_def; header; error;
 	                { missing_colon_error ($startpos, $endpos); raise Terminate } 
@@ -349,7 +357,7 @@ atom        : id = T_id;
 	              { let (ent,t) = check_lvalue id ($startpos, $endpos) in			
 		        { default_properties with place = Q_entry ent; typ = t } }
             | s = T_sconst;
-	              { let size = String.length s + 1 in
+	              { let size = String.length (snd s) + 1 in
 			{ default_properties with place = Q_string s; typ = TYPE_array (TYPE_char, size) } }			
 	    | atm = atom; T_lbracket; e = expr; T_rbracket;
 	              { check_array_lvalue atm.typ e.typ ($startpos, $endpos);

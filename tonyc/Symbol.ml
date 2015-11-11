@@ -10,6 +10,8 @@ module H = Hashtbl.Make (
   end
 )
 
+let uid = ref (~-15) (* All library functions have negative uid *)
+			
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE | PASS_RET
 
 type param_status =
@@ -36,7 +38,8 @@ and function_info = {
   mutable function_redeflist : entry list;
   mutable function_result    : Types.typ;
   mutable function_pstatus   : param_status;
-  mutable function_initquad  : int
+  mutable function_initquad  : int;
+  mutable function_uid       : int
 }
 
 and parameter_info = {
@@ -188,8 +191,10 @@ let newFunction id err =
       function_redeflist = [];
       function_result = TYPE_none;
       function_pstatus = PARDEF_DEFINE;
-      function_initquad = 0
+      function_initquad = 0;
+      function_uid = !uid
     } in
+    incr uid;
     newEntry id (ENTRY_function inf) false
 
 let newParameter id typ mode f err =

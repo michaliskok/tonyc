@@ -1,4 +1,10 @@
+open Format
+open Error
+
 exception Not_Hex_Digit of char
+
+(* Checks if a character represents a hex value *)
+let is_hex ch = (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'Z')
 
 (* Returns the hexadecimal value of a character *)
 let hex_value ch = match ch with
@@ -26,3 +32,43 @@ let implode l =
   | [] -> res
   | c :: l -> res.[i] <- c; imp (i + 1) l in
   imp 0 l
+
+(* Returns a string without the escape sequences *)
+let de_escape str pos =
+  let len = String.length str in
+  let rec loop i acc =
+    if i < len then
+      begin
+	match str.[i] with
+	| '\\' ->
+	   begin
+	     match str.[i+1] with
+	      |'n' -> loop (i+2) ('\n'::acc)
+              |'r' -> loop (i+2) ('\r'::acc)
+              |'t' -> loop (i+2) ('\t'::acc)
+              |'0' -> loop (i+2) ((Char.chr 0)::acc)
+              |'\'' -> loop (i+2) ('\''::acc)
+              |'"' -> loop (i+2) ('"'::acc)
+              |'x' ->
+		if ((is_hex str.[i+2]) && (is_hex str.[i+3])) then 
+		  let h1 = hex_value str.[i+2] in
+		  let h2 = hex_value str.[i+3] in
+		  loop (i+4) ((Char.chr (h1*16+h2))::acc)
+		else
+		  begin
+		    print_position err_formatter pos;
+		    error "Invalid escape sequence!"; 
+		    raise Terminate 
+		  end
+	      | _ ->
+		 print_position err_formatter pos;
+		 error "Invalid escape sequence!";
+		 raise Terminate
+	   end
+	| _ ->
+	   loop (i+1) (str.[i]::acc)
+      end
+    else
+      implode (List.rev acc)
+  in
+  loop 0 []

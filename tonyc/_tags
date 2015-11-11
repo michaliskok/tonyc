@@ -1,0 +1,2 @@
+"extend.ml": use_camlp5, use_q_MLast, use_pa_extend
+(<**/*.ml> or <**/*.mli> or <**/*.mly>) and not "extend.ml": use_extend

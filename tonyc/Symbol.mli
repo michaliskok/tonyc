@@ -26,7 +26,8 @@ and function_info = {                         (******* Συνάρτηση *******)
   mutable function_redeflist : entry list;    (* Λίστα παραμέτρων (2η) *)
   mutable function_result    : Types.typ;     (* Τύπος αποτελέσματος   *)
   mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
-  mutable function_initquad  : int            (* Αρχική τετράδα        *)
+  mutable function_initquad  : int;           (* Αρχική τετράδα        *)
+  mutable function_uid       : int            (* Function unique ID    *)
 }
 
 and parameter_info = {                        (****** Παράμετρος *******)
@@ -73,3 +74,5 @@ val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
 
 val start_positive_offset : int   (* Αρχικό θετικό offset στο Ε.Δ.   *)
 val start_negative_offset : int   (* Αρχικό αρνητικό offset στο Ε.Δ. *)
+
+val uid : int ref

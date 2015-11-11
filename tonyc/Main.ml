@@ -17,6 +17,7 @@ let optimizations = ref false
 let usage_msg = "Usage: tonyc [options] filename \n\nOptions:"
 let spec = Arg.align [
 	       "-i", Arg.Unit (fun () -> mode := Intermediate), "Output Intermediate Code";
+	       "-f", Arg.Unit (fun () -> mode := Final), "Output Final Code";
 	       "-O", Arg.Unit (fun () -> optimizations := true), "Enable Optimizations"
 	     ]
 let anon_fun str =
@@ -41,14 +42,16 @@ let main =
     | Intermediate ->
        Quads.print_quads stdout quads
     | Final ->
-       ()
+       Final.print_final stdout quads
     | Normal ->
        match !in_file with
        | None ->
 	  internal "Need to read from a source file!"; raise Terminate
        | Some str ->
 	  let imm_file = open_out ((Filename.chop_extension str) ^ ".imm") in
-	  Quads.print_quads imm_file quads             
+	  let asm_file = open_out ((Filename.chop_extension str) ^ ".asm") in
+	  Quads.print_quads imm_file quads;
+          Final.print_final asm_file quads;
   with
     Error -> 
     let pos = position_point lexbuf.Lexing.lex_curr_p in

@@ -9,14 +9,13 @@ type typ = TYPE_none
              int
 	 | TYPE_list of
 	     typ
-	 | TYPE_func     (* This needs a fix *)
 
 let rec sizeOfType t =
    match t with
    | TYPE_int            -> 2
    | TYPE_char           -> 1
    | TYPE_bool           -> 1
-   | TYPE_array (et, sz) -> 2 (* sz * sizeOfType et *)
+   | TYPE_array (et, sz) -> 2 
    | TYPE_list   _       -> 2
    | _                   -> 0
 

@@ -2,9 +2,9 @@
 *.cmo
 *.cmx
 *.imm
+*.asm
 Lexer.ml
 Parser.ml
-tonyc
 Main.byte
 *.automaton
 .conflicts
