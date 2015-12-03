@@ -231,11 +231,9 @@ let print_quads channel quads =
 let normalize quads =
   let replace_quad old neww =
     let aux quad = 
-      if quad.label = old then
-	quad.label <- neww;
       match quad.z with
       | Q_label label ->
-	 if !label = old then
+	 if !label = old then 
 	   label := neww (* No further correction will be needed :) *)
       | _ ->
 	 ()
@@ -243,10 +241,14 @@ let normalize quads =
   in
   let next_quad = ref 1 in
   let needs_fix quad =
-    if quad.label <> !next_quad && quad.z <> Q_none then
-      (* if quad needs fix and it's valid fix it *)
+    if quad.z <> Q_none then
       begin
-	replace_quad quad.label !next_quad;
+	if quad.label <> !next_quad then
+	  begin
+	    (* if quad needs fix and it's valid fix it *)
+	    replace_quad quad.label !next_quad;
+	    quad.label <- !next_quad;
+	  end;
 	next_quad := !next_quad + 1
       end
   in

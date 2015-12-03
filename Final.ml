@@ -99,7 +99,7 @@ let get_function_uid ent = match ent.entry_info with
   | ENTRY_function f -> f.function_uid
   | _ -> internal "Cannot get function ID from something that is not a function!"; raise Terminate
 
-let is_extern_function ent = (get_function_uid ent = 0)
+let is_extern_function ent = (get_function_uid ent < 0)
 
    
 (* ------------------------------------------------------------------------ *)
@@ -202,7 +202,7 @@ let loadAddr r a = match a with
 	     printasm "\t\tlea\t%s, %s ptr [bp+%d]\n" r (entry_size e) (entry_offset e)
 	 else
 	   if entry_offset e < 0 then
-	     printasm "\t\tmov\t%s, word ptr [bp%d]\n" r(entry_offset e)
+	     printasm "\t\tmov\t%s, word ptr [bp%d]\n" r (entry_offset e)
 	   else
 	     printasm "\t\tmov\t%s, word ptr [bp+%d]\n" r (entry_offset e)
        end
@@ -281,19 +281,9 @@ let store r a = match a with
   | _ -> internal "Problem with store asm function";
 	 raise Terminate
 
-let name p = match p with
-  | Q_entry f ->
-     Printf.sprintf "_%s_%d" (id_name f.entry_id) (get_function_uid f)
-  | _ ->
-     internal "Problem in 'name' asm function (name for a non-function entry?)";
-     raise Terminate
-
-let endof p = match p with
-  | Q_entry f ->
-     Printf.sprintf "@%s_%d" (id_name f.entry_id) (get_function_uid f)
-  | _ ->
-     internal "Problem in 'endof' asm function (end of a non-function entry?)";
-     raise Terminate
+let name p = Printf.sprintf "_%s_%d" (id_name p.entry_id) (get_function_uid p)
+  
+let endof p = Printf.sprintf "@%s_%d" (id_name p.entry_id) (get_function_uid p)
 
 let label n = Printf.sprintf "@%d" n
    
@@ -313,10 +303,17 @@ let print_extrns () =
 (*                     FUNCTION STACK AUXILIARY FUNCTIONS                   *)
 (* ------------------------------------------------------------------------ *)
 
-(* Function entry, negative offset and AR entries are stored in a Hashtbl *)
-let func_stack = Hashtbl.create 42
-let func_stack_push (name, negofs, entries) = Hashtbl.add func_stack name (negofs, entries)
-let func_stack_pop name = Hashtbl.find func_stack name
+(* Function entry, negative offset and AR entries are stored in a Custom Hashtbl *)
+module H = Hashtbl.Make (
+  struct
+    type t = Identifier.id
+    let equal = (==)
+    let hash = Hashtbl.hash
+  end
+)
+let func_stack = H.create 42
+let func_stack_push (id, entry, negofs, entries) = H.add func_stack id (entry, negofs, entries)
+let func_stack_pop id = H.find func_stack id
 
 (* Stack that holds information about current unit (entry_name * uid) *)
 let current_unit_stack = Stack.create ()
@@ -338,7 +335,7 @@ let register_call_tables () =
     printasm "\t\tcall\tnear ptr _register_call_table\n"
   in
   printasm "\t;;  Register call tables\n";
-  Hashtbl.iter (fun entry offset -> reg_call_table (name (Q_entry entry))) func_stack;
+  H.iter (fun id (entry, _, _) -> reg_call_table (name entry)) func_stack;
   register_extrn_call_tables reg_call_table
 
 (* Functions that handle function calls from the current unit *)
@@ -491,7 +488,7 @@ let code_generation quad =
        | Q_leq     -> "jle"
        | Q_geq     -> "jge"
        | _         -> internal "This cannot possibly happen."; raise Terminate in
-     printasm "\t\t%s\t\t%s\n" asm_op (label (getLabel z))
+     printasm "\t\t%s\t%s\n" asm_op (label (getLabel z))
   | Q_ifb ->
      load "al" x;
      printasm "\t\tor\tal, al\n";
@@ -502,20 +499,13 @@ let code_generation quad =
        | Q_entry ent ->
 	  current_nesting_lvl := entry_scope ent + 1;
 	  Stack.push (ent, get_function_uid ent) current_unit_stack;
-	  printasm "%s\t\tproc\tnear\n" (name x);
+	  printasm "%s\tproc\tnear\n" (name ent);
 	  printasm "\t\tpush\tbp\n";
 	  printasm "\t\tmov\tbp, sp\n";
 	  reset_call_list ();
 	  (* Do we have to initialize stack to 0 *)
-	  
-	  begin
-	    try
-	      let (negofs, _) = func_stack_pop ent in
-	      printasm "\t\tsub\t\tsp, %d\n" (-negofs)
-	    with Not_found ->
-	      Printf.printf "Failed to find entry %s\n" (id_name ent.entry_id);
-	      Hashtbl.iter (fun x y -> Printf.printf "%s" (id_name x.entry_id)) func_stack
-	  end
+	  let (_, negofs, _) = func_stack_pop ent.entry_id in
+	  printasm "\t\tsub\tsp, %d\n" (-negofs)
        | _ -> internal "Never matched -- Unit quad without the respective Symbol.entry";
 	      raise Terminate
      end
@@ -523,14 +513,14 @@ let code_generation quad =
      begin
        match x with
        | Q_entry ent ->
-	  printasm "%s:\n\t\tmov\tsp, bp\n" (endof x);
+	  printasm "%s:\n\t\tmov\tsp, bp\n" (endof ent);
 	  printasm "\t\tpop\tbp\n";
 	  printasm "\t\tret\n";
-	  printasm "%s\tendp\n\n" (name x);
+	  printasm "%s\t\tendp\n\n" (name ent);
 	  (* Print Function Call Table *)
 	  let print_call (num, hasNext, addSP) =
 	    let (active_function, active_function_id) = Stack.top current_unit_stack in
-	    let (negofs, entries) = func_stack_pop ent in
+	    let (ent, negofs, entries) = func_stack_pop ent.entry_id in
 	    let is_pointer e = match e.entry_info with
 	      | ENTRY_variable  e -> isPointerType e.variable_type
 	      | ENTRY_parameter e -> isPointerType e.parameter_type
@@ -544,7 +534,7 @@ let code_generation quad =
 	    List.iter print_heap_pointer (List.rev entries);
 	    printasm "\t\tdw\t 0\n";
 	  in
-	  printasm "%s_call_table:\n" (name x);
+	  printasm "%s_call_table:\n" (name ent);
 	  List.iter print_call (get_call_list ());
 	  ignore (Stack.pop current_unit_stack)
        | _ -> internal "Never matched -- Endu quad without the respective Symbol.entry";
@@ -578,7 +568,7 @@ let code_generation quad =
      end
   | Q_ret ->
      let (unit, _) = Stack.top current_unit_stack in
-     printasm "\t\tjmp\t%s\n" (endof (Q_entry unit))
+     printasm "\t\tjmp\t%s\n" (endof unit)
   | Q_jump ->
      printasm "\t\tjmp\t%s\n" (label (getLabel z))
   | Q_call ->
@@ -621,7 +611,7 @@ let code_generation quad =
 		 end
 	       else
 		 begin
-		   printasm "\t\tcall\tnear ptr %s\n" (name z);
+		   printasm "\t\tcall\tnear ptr %s\n" (name e);
 		   (* Add function to call_list -- for GC *)
 		   push_call (4 + size_of_params f);
 		   let (active_function, active_function_id) = Stack.top current_unit_stack in
@@ -676,7 +666,7 @@ let code_generation quad =
 	    with
 	      Not_found ->
 	      Hashtbl.add extrn_functions name "proc";
-	      Hashtbl.add extrn_functions (name ^ "_call_table") "word"
+	      (*Hashtbl.add extrn_functions (name ^ "_call_table") "word"*)
 	  end;
 	  printasm "\t\tadd\tsp, %d\n" (4 + 2 + 2)
        | _ ->
@@ -690,16 +680,17 @@ let code_gen quad = if quad.z <> Q_none then code_generation quad
 let print_final out_channel (quads : quad array) =
   asm_file := out_channel;
   let len = Array.length quads in
-  let main_quad = quads.(len-1) in
-  let main = name main_quad.x in
+  let main = match quads.(len-1).x with
+    | Q_entry f -> name f
+    | _ -> internal "Never matched -- Error in quad generation"; raise Terminate in
   (* Print asm headers *)
   printasm "%s" header;
   register_call_tables ();
   header_end main;
   (* Print main program*)
-  Hashtbl.add extrn_functions "register_call_table" "proc";
   Array.iter code_gen quads;
   (* Print asm footers *)
+  Hashtbl.add extrn_functions "register_call_table" "proc";
   print_extrns ();
   print_strings ();
   printasm "%s" gc_footer;

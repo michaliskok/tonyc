@@ -1,0 +1,157 @@
+_abs..............abs               _allocate.........gc
+_atan.............atan              _chr..............chr
+_consp............consp             _consp_call_table..consp
+_consv............consv             _consv_call_table..consv
+_cos..............cos               _exit.............exit
+_exp..............exp               _extend...........extend
+_fabs.............fabs              _formatInteger....formati
+_formatReal.......formatr           _gc...............gc
+_getb.............getb              _getbt............getbt
+_getc.............getc              _geti.............geti
+_getr.............getr              _gets.............gets
+_head.............head              _ln...............ln
+_newarrp..........newarrp           _newarrv..........newarrv
+_ord..............ord               _parseInteger.....parsei
+_parseReal........parser            _pi...............pi
+_putb.............putb              _putbt............putbt
+_putc.............putc              _puti.............puti
+_putr.............putr              _puts.............puts
+_register_call_table..gc            _round............round
+_shrink...........shrink            _sin..............sin
+_sqrt.............sqrt              _strcat...........strcat
+_strcmp...........strcmp            _strcpy...........strcpy
+_strlen...........strlen            _tail.............tail
+_tan..............tan               _trunc............trunc
+
+
+puti              Offset: 00000010H  Code and data size: 3cH
+  _puti           
+
+geti              Offset: 000000e0H  Code and data size: 136H
+  _geti           
+
+putc              Offset: 000001b0H  Code and data size: 1dH
+  _putc           
+
+getc              Offset: 00000230H  Code and data size: 16H
+  _getc           
+
+putb              Offset: 000002b0H  Code and data size: 29H
+  _putb           
+
+getb              Offset: 00000350H  Code and data size: 13aH
+  _getb           
+
+putr              Offset: 00000410H  Code and data size: 93H
+  _putr           
+
+getr              Offset: 00000500H  Code and data size: 136H
+  _getr           
+
+puts              Offset: 000005d0H  Code and data size: 22H
+  _puts           
+
+gets              Offset: 00000650H  Code and data size: 74H
+  _gets           
+
+putbt             Offset: 00000730H  Code and data size: 17H
+  _putbt          
+
+getbt             Offset: 000007c0H  Code and data size: 1dH
+  _getbt          
+
+abs               Offset: 00000860H  Code and data size: 13H
+  _abs            
+
+fabs              Offset: 000008d0H  Code and data size: 12H
+  _fabs           
+
+sqrt              Offset: 00000940H  Code and data size: 12H
+  _sqrt           
+
+sin               Offset: 000009b0H  Code and data size: 2bH
+  _sin            
+
+cos               Offset: 00000a40H  Code and data size: 31H
+  _cos            
+
+tan               Offset: 00000ae0H  Code and data size: 18H
+  _tan            
+
+atan              Offset: 00000b60H  Code and data size: 15H
+  _atan           
+
+exp               Offset: 00000be0H  Code and data size: 1eH
+  _exp            
+
+ln                Offset: 00000c60H  Code and data size: 1bH
+  _ln             
+
+pi                Offset: 00000ce0H  Code and data size: eH
+  _pi             
+
+trunc             Offset: 00000d50H  Code and data size: 27H
+  _trunc          
+
+round             Offset: 00000e00H  Code and data size: 51H
+  _round          
+
+ord               Offset: 00000ef0H  Code and data size: fH
+  _ord            
+
+chr               Offset: 00000f60H  Code and data size: dH
+  _chr            
+
+exit              Offset: 00000fd0H  Code and data size: aH
+  _exit           
+
+shrink            Offset: 00001040H  Code and data size: fH
+  _shrink         
+
+extend            Offset: 000010c0H  Code and data size: 11H
+  _extend         
+
+strlen            Offset: 00001140H  Code and data size: 19H
+  _strlen         
+
+strcmp            Offset: 000011c0H  Code and data size: 30H
+  _strcmp         
+
+strcpy            Offset: 00001260H  Code and data size: 17H
+  _strcpy         
+
+strcat            Offset: 000012e0H  Code and data size: 24H
+  _strcat         
+
+formati           Offset: 00001370H  Code and data size: 16bH
+  _formatInteger  
+
+parsei            Offset: 00001580H  Code and data size: b9H
+  _parseInteger   
+
+formatr           Offset: 000016b0H  Code and data size: 738H
+  _formatReal     
+
+parser            Offset: 00001f60H  Code and data size: 1f9H
+  _parseReal      
+
+gc                Offset: 000021f0H  Code and data size: 34cH
+  _allocate         _gc               _register_call_table
+
+consv             Offset: 00002600H  Code and data size: 2fH
+  _consv            _consv_call_table                 
+
+consp             Offset: 000026d0H  Code and data size: 31H
+  _consp            _consp_call_table                 
+
+head              Offset: 000027a0H  Code and data size: 10H
+  _head           
+
+tail              Offset: 00002810H  Code and data size: 10H
+  _tail           
+
+newarrv           Offset: 00002880H  Code and data size: 18H
+  _newarrv        
+
+newarrp           Offset: 00002920H  Code and data size: 27H
+  _newarrp        

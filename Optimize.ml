@@ -179,18 +179,14 @@ let constant_folding i (quads : quad array) =
   
 
 (* Perform all optimizations, if optimizations are enabled by user *)
-let optimize allowed quads = match allowed with
-  | false ->
-     ()
-  | true ->
-     for i = 0 to (Array.length quads - 1) do
-       constant_folding i quads;
-       reverse_jconditions i quads;
-       reverse_copy_propagation i quads;
-     done;
-     (* Na tis kopiarw prin tis kanw normalize gia eukolia paragwgis telikou *)
-     (* mporw na alla3w kai tin needs_fix sto normalize *)
-     Quads.normalize quads 
+let optimize allowed quads =
+  if allowed then
+    for i = 0 to (Array.length quads - 1) do
+      constant_folding i quads;
+      reverse_jconditions i quads;
+      reverse_copy_propagation i quads;
+    done
+  
      
        
      

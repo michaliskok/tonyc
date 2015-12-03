@@ -9,6 +9,7 @@
 Lexer.ml
 Parser.ml
 Main.*
+tonyc
 *.automaton
 .conflicts
 .depend

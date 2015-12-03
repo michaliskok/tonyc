@@ -147,6 +147,7 @@ and parse_string acc pos_start = parse
 			 let str = implode (List.rev acc) in
 			 T_sconst ((str, de_escape str pos)) }
   (* Match next string character *)
+  | "\\\""             { parse_string ('"'::acc) pos_start lexbuf }
   | '\\' '\n'          { incr_linenum lexbuf; parse_string acc pos_start lexbuf }
   | _ as chr           { parse_string (chr::acc) pos_start lexbuf }
 and dispose_string pos_start = parse
@@ -181,9 +182,9 @@ and multiline_comment pos_start level = parse
 			 else multiline_comment pos_start (level-1) lexbuf }
   | "<*"               { multiline_comment pos_start (level+1) lexbuf }
   | '\n'               { incr_linenum lexbuf; multiline_comment pos_start level lexbuf }
-  | _                  { multiline_comment pos_start level lexbuf }
   | eof                { let pos_end = lexbuf.Lexing.lex_curr_p in
 			 let pos = position_context pos_start pos_end in
 			 print_position err_formatter pos;
 			 fatal "Unterminated comment section";
 			 T_eof }
+  | _                  { multiline_comment pos_start level lexbuf }

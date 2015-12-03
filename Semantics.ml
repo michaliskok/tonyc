@@ -19,8 +19,8 @@ let check_bool_exp e pos = match e with
 
 (* Ensure that a list is constructed with the right operands *)
 let check_list_cons hd tl pos =
-  if TYPE_list (hd) = tl || TYPE_list TYPE_none = tl then ()
-  else ( cons_error (TYPE_list hd) tl pos; raise Terminate )
+  if equalType (TYPE_list hd) tl then ()
+  else ( cons_error hd tl pos; raise Terminate )
 
 (* Ensure that "nil?" operator is applied to lists only *)
 let check_list_exp e pos = match e with
@@ -37,7 +37,7 @@ let check_binary_exp op e1 e2 pos =
                                             else ( binop_comp_error e1 e2 pos; raise Terminate )
   | "and" | "or"                         -> if equal_types && e1 = TYPE_bool then ()
 					    else ( binop_bool_error e1 e2 pos; raise Terminate )
-  | _                                    -> internal "Not a binary expression?"
+  | _                                    -> internal "Not a binary expression?"; raise Terminate
   
 (* Perform semantic check for simple lvalues *)
 let check_lvalue id pos =

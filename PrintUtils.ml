@@ -333,7 +333,7 @@ let cons_error e1 e2 (pos_start, pos_end) =
   print_position err_formatter pos;
   error "Type miscmatch: Operator and operand don't agree.\n\
 	 Lists can be constructed only from basic types - \
-	 %s * %s is invalid for list construction."
+	 %s # %s is invalid for list construction."
 	(string_of_type e1) (string_of_type e2)
 	
 let bool_error exp (pos_start, pos_end) =

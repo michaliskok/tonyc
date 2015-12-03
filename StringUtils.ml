@@ -43,13 +43,14 @@ let de_escape str pos =
 	| '\\' ->
 	   begin
 	     match str.[i+1] with
-	      |'n' -> loop (i+2) ('\n'::acc)
-              |'r' -> loop (i+2) ('\r'::acc)
-              |'t' -> loop (i+2) ('\t'::acc)
-              |'0' -> loop (i+2) ((Char.chr 0)::acc)
-              |'\'' -> loop (i+2) ('\''::acc)
-              |'"' -> loop (i+2) ('"'::acc)
-              |'x' ->
+	      | 'n'  -> loop (i+2) ('\n'::acc)
+              | 'r'  -> loop (i+2) ('\r'::acc)
+              | 't'  -> loop (i+2) ('\t'::acc)
+              | '0'  -> loop (i+2) ((Char.chr 0)::acc)
+	      | '\\' -> loop (i+2) ('\\'::acc)
+	      | '\'' -> loop (i+2) ('\''::acc)
+              | '\"'  -> loop (i+2) ('\"'::acc)
+              | 'x'  ->
 		if ((is_hex str.[i+2]) && (is_hex str.[i+3])) then 
 		  let h1 = hex_value str.[i+2] in
 		  let h2 = hex_value str.[i+3] in

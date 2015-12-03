@@ -168,14 +168,15 @@ init        : { initSymbolTable 256; registerLibrary (); openScope TYPE_none }
 		
 func_def    : f = def_header; slist = stmt_list; T_end;
                         { backpatch slist.next (nextQuad ());
-			  Final.func_stack_push (extract_entry f.place, !currentScope.sco_negofs, !currentScope.sco_entries); 
+			  let fn = extract_entry f.place in
+			  Final.func_stack_push (fn.entry_id, fn, !currentScope.sco_negofs, !currentScope.sco_entries); 
 			  let new_quad = genQuad Q_endu f.place Q_empty Q_empty in
 			  closeScope ();
 			  { default_properties with code = new_quad :: slist.code @ f.code; place = f.place }
 			}
 	    (* func_def - parsing errors *)
 	    | def_header; stmt_list; error;
-	                { missing_end_in_function ($startpos, $endpos); raise Terminate }
+	                { missing_end_in_function ($startpos, $endpos); raise Terminate	}
 
 			    
 def_header : T_def; f = header; T_colon; fs = local_defs;
@@ -223,14 +224,14 @@ ttype       : T_int     {  TYPE_int   }
 	                { TYPE_list t }
 
 			  
-func_decl   : T_decl; fn_t = ttype?; id = T_id; T_lparen; params = separated_list(T_semic,formal); T_rparen; (* allagh edw *)
+func_decl   : T_decl; fn_t = ttype?; id = T_id; T_lparen; params = separated_list(T_semic,formal); T_rparen; 
 			{ declareFunction (extract_fun_type fn_t, id, params) }
 
 			  
 var_def     : t = ttype; vars = separated_nonempty_list(T_comma,T_id);  
 			{ declareVariables t vars }
 	    (* var_def - parsing errors *)
-	    | error;
+	    | ttype; separated_list(T_comma,T_id); error;
 	                { var_def_error_2 ($startpos, $endpos); raise Terminate }
 
 
@@ -342,16 +343,13 @@ simple_list : s = simple
 		      { { default_properties with code = s.code @ ss.code } }
 
 				 				     
-call        : id = T_id; T_lparen; arguments = separated_list(T_comma, arg); T_rparen;
-	              { let (args, icode_args) = List.split arguments in
-			let (res, ent) = check_fun_call id args ($startpos, $endpos) in
-			icode_fun_call res ent icode_args }
+call        : id = T_id; T_lparen; args = separated_list(T_comma, expr); T_rparen;
+	              { let (res, ent) = check_fun_call id args ($startpos, $endpos) in
+			icode_fun_call res ent args }
 	    (* call - parsing errors *)
 	    | T_id; T_lparen; error;
 	              { wrong_function_call ($startpos, $endpos); raise Terminate }
-
-arg         : e = expr;
-		      { icode_fun_arg e }			
+			
 			
 atom        : id = T_id;
 	              { let (ent,t) = check_lvalue id ($startpos, $endpos) in			
