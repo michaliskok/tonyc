@@ -8,7 +8,8 @@
 *~
 Lexer.ml
 Parser.ml
-Main.*
+Main.byte
+Main.native
 tonyc
 *.automaton
 .conflicts
