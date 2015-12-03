@@ -3,12 +3,16 @@ tonyc
 
 This is the source code for tonyc, a compiler for the language Tony, implemented for Compilers Course,
 8th Semester, National Technical University of Athens.
+
+Author: Michalis Kokologiannakis.
 Course info and details: http://courses.softlab.ntua.gr/compilers/2015a/
 
 * [Licence](#licence)
 * [Dependencies](#dependencies)
 * [Installing](#installing)
+* [Usage](#usage)
 * [Features](#features)
+* [Notes](#notes)
 
 Licence
 -------
@@ -40,6 +44,19 @@ Installing
 * For a default build:
 
 		make
+
+Usage
+-----
+
+* If you just want to generate the assembly files, use:
+
+	./tonyc <your-file>
+
+* Alternatively, if you just want to execute a .tony file, use:
+
+	./run.sh <your-file>
+
+	This action requires a working dosbox installation.
 
 
 Features
