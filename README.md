@@ -50,11 +50,11 @@ Usage
 
 * If you just want to generate the assembly files, use:
 
-	./tonyc <your-file>
+	./tonyc &lt;your-file&gt;
 
 * Alternatively, if you just want to execute a .tony file, use:
 
-	./run.sh <your-file>
+	./run.sh &lt;your-file&gt;
 
 	This action requires a working dosbox installation.
 
