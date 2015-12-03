@@ -35,7 +35,7 @@ Installing
 
 * Download tonyc's sources or clone this repository:
 
-		link_here
+		git clone https://github.com/michalis-/tonyc.git
 
 * For a default build:
 
